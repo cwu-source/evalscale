@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Platform Admin | EvalScale</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        :root { --color-bg: #0f1219; --color-text-primary: #f1f5f9; --color-text-secondary: #94a3b8; --color-text-muted: #64748b; --color-accent-blue: #3b82f6; --color-accent-teal: #14b8a6; --color-accent-green: #22c55e; --color-accent-orange: #f59e0b; --color-accent-red: #ef4444; --color-accent-purple: #a855f7; --color-glass-bg: rgba(30, 41, 59, 0.8); --color-glass-border: rgba(51, 65, 85, 0.5); --font-display: 'Instrument Serif', Georgia, serif; --font-body: 'DM Sans', sans-serif; }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-body); background: var(--color-bg); color: var(--color-text-primary); line-height: 1.6; }
+        
+        /* NOC-style dark background */
+        .bg-grid { position: fixed; inset: 0; z-index: -1; background: linear-gradient(rgba(15, 18, 25, 0.95), rgba(15, 18, 25, 0.95)), repeating-linear-gradient(0deg, transparent, transparent 50px, rgba(59, 130, 246, 0.03) 50px, rgba(59, 130, 246, 0.03) 51px), repeating-linear-gradient(90deg, transparent, transparent 50px, rgba(59, 130, 246, 0.03) 50px, rgba(59, 130, 246, 0.03) 51px); }
+        
+        /* Navigation */
+        .navbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 40px; background: rgba(15, 18, 25, 0.9); backdrop-filter: blur(20px); border-bottom: 1px solid var(--color-glass-border); position: sticky; top: 0; z-index: 100; }
+        .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--color-text-primary); }
+        .nav-logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--color-accent-blue), var(--color-accent-teal)); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+        .nav-logo-icon svg { width: 20px; height: 20px; fill: white; }
+        .nav-logo-text { font-family: var(--font-display); font-size: 1.5rem; }
+        .nav-breadcrumb { display: flex; align-items: center; gap: 8px; color: var(--color-text-muted); font-size: 0.875rem; }
+        .nav-breadcrumb a { color: var(--color-text-muted); text-decoration: none; }
+        .nav-breadcrumb a:hover { color: var(--color-accent-blue); }
+        .nav-breadcrumb span { color: var(--color-text-primary); font-weight: 500; }
+        .nav-breadcrumb svg { width: 16px; height: 16px; fill: currentColor; }
+        .nav-user { display: flex; align-items: center; gap: 12px; }
+        .nav-user-avatar { width: 36px; height: 36px; background: linear-gradient(135deg, var(--color-accent-purple), #c084fc); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 0.875rem; }
+        
+        /* Notification bell */
+        .notification-bell { width: 36px; height: 36px; background: transparent; border: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; }
+        .notification-bell:hover { background: rgba(255,255,255,0.05); }
+        .notification-bell svg { width: 20px; height: 20px; fill: var(--color-text-muted); }
+        .notification-badge { position: absolute; top: 4px; right: 4px; width: 16px; height: 16px; background: var(--color-accent-red); color: white; font-size: 0.625rem; font-weight: 600; border-radius: 50%; display: flex; align-items: center; justify-content: center; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        .nav-notifications { position: relative; }
+        .notification-dropdown { position: absolute; top: 100%; right: 0; width: 360px; background: #1e293b; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); opacity: 0; visibility: hidden; transform: translateY(10px); transition: all 0.3s; z-index: 1000; margin-top: 8px; overflow: hidden; border: 1px solid var(--color-glass-border); }
+        .notification-dropdown.active { opacity: 1; visibility: visible; transform: translateY(0); }
+        .notification-header { padding: 16px 20px; border-bottom: 1px solid var(--color-glass-border); display: flex; justify-content: space-between; }
+        .notification-title { font-weight: 600; }
+        .notification-clear { font-size: 0.75rem; color: var(--color-accent-blue); cursor: pointer; }
+        .notification-list { max-height: 280px; overflow-y: auto; }
+        .notification-item { padding: 14px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; gap: 12px; }
+        .notification-item.unread { background: rgba(59, 130, 246, 0.1); }
+        .notification-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+        .notification-icon.alert { background: rgba(239, 68, 68, 0.2); }
+        .notification-icon.alert svg { fill: var(--color-accent-red); }
+        .notification-icon.warning { background: rgba(245, 158, 11, 0.2); }
+        .notification-icon.warning svg { fill: var(--color-accent-orange); }
+        .notification-icon.success { background: rgba(34, 197, 94, 0.2); }
+        .notification-icon.success svg { fill: var(--color-accent-green); }
+        .notification-icon svg { width: 18px; height: 18px; }
+        .notification-content { flex: 1; }
+        .notification-text { font-size: 0.8125rem; margin-bottom: 2px; }
+        .notification-text strong { font-weight: 600; }
+        .notification-time { font-size: 0.6875rem; color: var(--color-text-muted); }
+        .notification-footer { padding: 12px 20px; text-align: center; border-top: 1px solid var(--color-glass-border); }
+        .notification-footer a { font-size: 0.8125rem; color: var(--color-accent-blue); text-decoration: none; }
+        
+        /* Main */
+        .main { padding: 32px 40px; max-width: 1600px; margin: 0 auto; }
+        
+        /* Header with live clock */
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .page-title { font-family: var(--font-display); font-size: 1.75rem; }
+        .page-subtitle { color: var(--color-text-secondary); font-size: 0.875rem; }
+        .live-clock { text-align: right; }
+        .clock-time { font-size: 2rem; font-weight: 600; font-family: 'DM Sans', monospace; color: var(--color-accent-blue); }
+        .clock-date { font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+        
+        /* System Status Bar */
+        .status-bar { display: flex; gap: 16px; margin-bottom: 24px; padding: 16px 20px; background: var(--color-glass-bg); border: 1px solid var(--color-glass-border); border-radius: 16px; }
+        .status-item { display: flex; align-items: center; gap: 10px; padding-right: 16px; border-right: 1px solid var(--color-glass-border); }
+        .status-item:last-child { border-right: none; padding-right: 0; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .status-dot.green { background: var(--color-accent-green); box-shadow: 0 0 8px var(--color-accent-green); }
+        .status-dot.orange { background: var(--color-accent-orange); box-shadow: 0 0 8px var(--color-accent-orange); animation: blink 1s infinite; }
+        .status-dot.red { background: var(--color-accent-red); box-shadow: 0 0 8px var(--color-accent-red); animation: blink 0.5s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .status-label { font-size: 0.75rem; color: var(--color-text-muted); }
+        .status-value { font-size: 0.875rem; font-weight: 600; }
+        
+        /* NOC Grid */
+        .noc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        .noc-card { background: var(--color-glass-bg); border: 1px solid var(--color-glass-border); border-radius: 16px; padding: 20px; position: relative; overflow: hidden; }
+        .noc-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--color-accent-blue), var(--color-accent-teal)); }
+        .noc-card.warning::before { background: linear-gradient(90deg, var(--color-accent-orange), var(--color-accent-red)); }
+        .noc-card.success::before { background: var(--color-accent-green); }
+        .noc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .noc-title { font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+        .noc-badge { padding: 2px 8px; border-radius: 4px; font-size: 0.625rem; font-weight: 600; text-transform: uppercase; }
+        .noc-badge.live { background: rgba(34, 197, 94, 0.2); color: var(--color-accent-green); }
+        .noc-badge.warning { background: rgba(245, 158, 11, 0.2); color: var(--color-accent-orange); }
+        .noc-value { font-size: 2rem; font-weight: 600; margin-bottom: 4px; }
+        .noc-value.green { color: var(--color-accent-green); }
+        .noc-value.orange { color: var(--color-accent-orange); }
+        .noc-value.red { color: var(--color-accent-red); }
+        .noc-change { font-size: 0.75rem; color: var(--color-text-muted); }
+        .noc-change.up { color: var(--color-accent-green); }
+        .noc-change.down { color: var(--color-accent-red); }
+        .noc-sparkline { height: 40px; margin-top: 12px; }
+        
+        /* Main grid layout */
+        .content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+        .content-grid.equal { grid-template-columns: 1fr 1fr; }
+        
+        /* Cards */
+        .card { background: var(--color-glass-bg); border: 1px solid var(--color-glass-border); border-radius: 16px; padding: 20px; }
+        .card.full-width { grid-column: 1 / -1; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .card-title { font-size: 0.9375rem; font-weight: 600; }
+        .card-subtitle { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 2px; }
+        .card-badge { padding: 4px 10px; background: rgba(34, 197, 94, 0.2); color: var(--color-accent-green); border-radius: 6px; font-size: 0.6875rem; font-weight: 600; }
+        .card-badge.warning { background: rgba(245, 158, 11, 0.2); color: var(--color-accent-orange); }
+        .card-badge.danger { background: rgba(239, 68, 68, 0.2); color: var(--color-accent-red); }
+        
+        /* Chart container */
+        .chart-container { position: relative; height: 200px; }
+        .chart-container.large { height: 280px; }
+        
+        /* World map */
+        .world-map { height: 200px; background: linear-gradient(180deg, rgba(59, 130, 246, 0.05) 0%, transparent 100%); border-radius: 8px; position: relative; overflow: hidden; }
+        .map-region { position: absolute; width: 12px; height: 12px; border-radius: 50%; cursor: pointer; transition: all 0.3s; }
+        .map-region::before { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid currentColor; opacity: 0.3; animation: regionPulse 2s infinite; }
+        @keyframes regionPulse { 0%, 100% { transform: scale(1); opacity: 0.3; } 50% { transform: scale(1.5); opacity: 0; } }
+        .map-region.us { background: var(--color-accent-green); color: var(--color-accent-green); top: 35%; left: 22%; }
+        .map-region.eu { background: var(--color-accent-green); color: var(--color-accent-green); top: 30%; left: 48%; }
+        .map-region.asia { background: var(--color-accent-orange); color: var(--color-accent-orange); top: 40%; left: 75%; }
+        .map-region:hover { transform: scale(1.5); }
+        .map-region .tooltip { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #1e293b; padding: 6px 10px; border-radius: 6px; font-size: 0.6875rem; white-space: nowrap; opacity: 0; transition: opacity 0.2s; pointer-events: none; margin-bottom: 8px; }
+        .map-region:hover .tooltip { opacity: 1; }
+        .map-latency { position: absolute; bottom: 12px; left: 12px; right: 12px; display: flex; justify-content: space-around; }
+        .latency-item { text-align: center; }
+        .latency-region { font-size: 0.625rem; color: var(--color-text-muted); text-transform: uppercase; }
+        .latency-value { font-size: 0.875rem; font-weight: 600; }
+        .latency-value.good { color: var(--color-accent-green); }
+        .latency-value.warning { color: var(--color-accent-orange); }
+        
+        /* API Status Table */
+        .api-table { width: 100%; font-size: 0.8125rem; }
+        .api-table th { text-align: left; padding: 10px 12px; color: var(--color-text-muted); font-weight: 500; border-bottom: 1px solid var(--color-glass-border); }
+        .api-table td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .api-table tr:hover { background: rgba(255,255,255,0.02); }
+        .api-status { display: inline-flex; align-items: center; gap: 6px; }
+        .api-status-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .api-status-dot.up { background: var(--color-accent-green); }
+        .api-status-dot.degraded { background: var(--color-accent-orange); }
+        .api-status-dot.down { background: var(--color-accent-red); }
+        .api-uptime { color: var(--color-accent-green); font-weight: 500; }
+        .api-uptime.warning { color: var(--color-accent-orange); }
+        
+        /* Audit Log */
+        .audit-log { max-height: 300px; overflow-y: auto; }
+        .audit-entry { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 0.8125rem; }
+        .audit-entry:last-child { border-bottom: none; }
+        .audit-time { color: var(--color-text-muted); font-size: 0.6875rem; min-width: 60px; font-family: monospace; }
+        .audit-level { width: 6px; height: 6px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+        .audit-level.info { background: var(--color-accent-blue); }
+        .audit-level.warn { background: var(--color-accent-orange); }
+        .audit-level.error { background: var(--color-accent-red); }
+        .audit-level.success { background: var(--color-accent-green); }
+        .audit-content { flex: 1; }
+        .audit-message { color: var(--color-text-secondary); }
+        .audit-source { font-size: 0.6875rem; color: var(--color-text-muted); margin-top: 2px; }
+        
+        /* ROI Dashboard */
+        .roi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .roi-stat { text-align: center; padding: 16px; background: rgba(0,0,0,0.2); border-radius: 12px; }
+        .roi-value { font-size: 1.5rem; font-weight: 600; color: var(--color-accent-green); }
+        .roi-label { font-size: 0.6875rem; color: var(--color-text-muted); text-transform: uppercase; margin-top: 4px; }
+        
+        /* Tenant Usage */
+        .tenant-list { display: flex; flex-direction: column; gap: 12px; }
+        .tenant-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 10px; }
+        .tenant-logo { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; }
+        .tenant-info { flex: 1; }
+        .tenant-name { font-weight: 500; font-size: 0.875rem; }
+        .tenant-plan { font-size: 0.6875rem; color: var(--color-text-muted); }
+        .tenant-usage { text-align: right; }
+        .tenant-calls { font-weight: 600; font-size: 0.875rem; }
+        .tenant-limit { font-size: 0.6875rem; color: var(--color-text-muted); }
+        
+        /* Quick Actions */
+        .quick-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .quick-btn { padding: 16px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 12px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 0.2s; }
+        .quick-btn:hover { background: rgba(59, 130, 246, 0.2); transform: translateY(-2px); }
+        .quick-btn.danger { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); }
+        .quick-btn.danger:hover { background: rgba(239, 68, 68, 0.2); }
+        .quick-icon { width: 40px; height: 40px; background: var(--color-accent-blue); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+        .quick-btn.danger .quick-icon { background: var(--color-accent-red); }
+        .quick-icon svg { width: 20px; height: 20px; fill: white; }
+        .quick-label { font-size: 0.8125rem; font-weight: 500; }
+        .quick-desc { font-size: 0.6875rem; color: var(--color-text-muted); }
+        
+        /* Terminal/Console style log */
+        .console-log { background: #0a0a0f; border-radius: 8px; padding: 16px; font-family: 'Monaco', 'Menlo', monospace; font-size: 0.75rem; max-height: 200px; overflow-y: auto; }
+        .console-line { padding: 2px 0; color: var(--color-text-secondary); }
+        .console-line .timestamp { color: var(--color-text-muted); }
+        .console-line .level-info { color: var(--color-accent-blue); }
+        .console-line .level-warn { color: var(--color-accent-orange); }
+        .console-line .level-error { color: var(--color-accent-red); }
+        .console-line .level-success { color: var(--color-accent-green); }
+        
+        /* Modal */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; visibility: hidden; transition: all 0.3s; }
+        .modal-overlay.active { opacity: 1; visibility: visible; }
+        .modal { background: #1e293b; border-radius: 24px; padding: 32px; max-width: 500px; width: 90%; border: 1px solid var(--color-glass-border); }
+        .modal-header { text-align: center; margin-bottom: 24px; }
+        .modal-icon { width: 64px; height: 64px; margin: 0 auto 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .modal-icon.danger { background: linear-gradient(135deg, var(--color-accent-red), #f87171); }
+        .modal-icon.success { background: linear-gradient(135deg, var(--color-accent-green), #4ade80); }
+        .modal-icon svg { width: 32px; height: 32px; fill: white; }
+        .modal-title { font-family: var(--font-display); font-size: 1.5rem; }
+        .modal-subtitle { color: var(--color-text-muted); margin-top: 8px; }
+        .modal-warning { padding: 16px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 12px; font-size: 0.875rem; color: var(--color-accent-red); text-align: center; margin-bottom: 20px; }
+        .modal-actions { display: flex; gap: 12px; }
+        .btn { padding: 12px 24px; border-radius: 12px; font-family: var(--font-body); font-size: 0.9375rem; font-weight: 500; cursor: pointer; transition: all 0.3s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: none; flex: 1; }
+        .btn-secondary { background: rgba(255,255,255,0.1); color: var(--color-text-primary); }
+        .btn-secondary:hover { background: rgba(255,255,255,0.15); }
+        .btn-danger { background: linear-gradient(135deg, var(--color-accent-red), #f87171); color: white; }
+        .btn-danger:hover { transform: translateY(-2px); }
+        .btn-primary { background: linear-gradient(135deg, var(--color-accent-blue), var(--color-accent-teal)); color: white; }
+        .btn svg { width: 18px; height: 18px; fill: currentColor; }
+        
+        /* Signature */
+        .signature-section { margin: 20px 0; }
+        .signature-input { width: 100%; padding: 14px 16px; background: rgba(0,0,0,0.3); border: 2px solid var(--color-glass-border); border-radius: 12px; color: var(--color-text-primary); font-family: 'Instrument Serif', serif; font-size: 1.25rem; font-style: italic; }
+        .signature-input:focus { outline: none; border-color: var(--color-accent-blue); }
+        .checkbox-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: rgba(0,0,0,0.2); border-radius: 12px; cursor: pointer; margin-top: 12px; }
+        .checkbox-item input { display: none; }
+        .checkbox-custom { width: 22px; height: 22px; border: 2px solid var(--color-glass-border); border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .checkbox-item input:checked + .checkbox-custom { background: var(--color-accent-green); border-color: var(--color-accent-green); }
+        .checkbox-item input:checked + .checkbox-custom::after { content: '✓'; color: white; font-size: 14px; }
+        .checkbox-label { font-size: 0.875rem; color: var(--color-text-secondary); }
+        
+        /* Success */
+        .success-animation { width: 100px; height: 100px; margin: 0 auto 20px; position: relative; }
+        .success-circle { width: 80px; height: 80px; background: linear-gradient(135deg, var(--color-accent-green), #4ade80); border-radius: 50%; position: absolute; top: 10px; left: 10px; display: flex; align-items: center; justify-content: center; animation: scaleIn 0.5s ease-out; }
+        .success-circle svg { width: 40px; height: 40px; fill: white; }
+        @keyframes scaleIn { 0% { transform: scale(0); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* Responsive */
+        @media (max-width: 1200px) { .noc-grid { grid-template-columns: repeat(2, 1fr); } .content-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) { .navbar { padding: 12px 20px; } .main { padding: 20px; } .status-bar { flex-wrap: wrap; } .roi-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    
+    <nav class="navbar">
+        <a href="index.html" class="nav-logo">
+            <div class="nav-logo-icon"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 11h-4v4h-4v-4H6v-4h4V6h4v4h4v4z"/></svg></div>
+            <span class="nav-logo-text">EvalScale</span>
+        </a>
+        <div class="nav-breadcrumb">
+            <a href="index.html">Home</a>
+            <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+            <span>Platform Admin Console</span>
+        </div>
+        <div class="nav-user">
+            <div class="nav-notifications">
+                <button class="notification-bell" onclick="toggleNotifications()">
+                    <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+                    <span class="notification-badge">4</span>
+                </button>
+                <div class="notification-dropdown" id="notificationDropdown">
+                    <div class="notification-header"><span class="notification-title">System Alerts</span><span class="notification-clear" onclick="clearNotifications()">Clear all</span></div>
+                    <div class="notification-list">
+                        <div class="notification-item unread"><div class="notification-icon alert"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg></div><div class="notification-content"><div class="notification-text"><strong>API Latency:</strong> Asia-Pacific P99 > 500ms</div><div class="notification-time">3 minutes ago</div></div></div>
+                        <div class="notification-item unread"><div class="notification-icon warning"><svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg></div><div class="notification-content"><div class="notification-text"><strong>Certificate:</strong> SSL cert expires in 14 days</div><div class="notification-time">1 hour ago</div></div></div>
+                        <div class="notification-item unread"><div class="notification-icon success"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div><div class="notification-content"><div class="notification-text"><strong>Backup:</strong> Daily backup completed successfully</div><div class="notification-time">2 hours ago</div></div></div>
+                        <div class="notification-item unread"><div class="notification-icon warning"><svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg></div><div class="notification-content"><div class="notification-text"><strong>Usage:</strong> Mayo Clinic approaching API limit</div><div class="notification-time">4 hours ago</div></div></div>
+                    </div>
+                    <div class="notification-footer"><a href="#">View all alerts</a></div>
+                </div>
+            </div>
+            <div class="nav-user-avatar">PA</div>
+        </div>
+    </nav>
+
+    <main class="main">
+        <header class="page-header">
+            <div>
+                <h1 class="page-title">Platform Admin Console</h1>
+                <p class="page-subtitle">Network Operations Center — Real-time system monitoring</p>
+            </div>
+            <div class="live-clock">
+                <div class="clock-time" id="liveClock">--:--:--</div>
+                <div class="clock-date" id="liveDate">---</div>
+            </div>
+        </header>
+
+        <!-- System Status Bar -->
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-dot green"></div>
+                <div><div class="status-label">API Status</div><div class="status-value">Operational</div></div>
+            </div>
+            <div class="status-item">
+                <div class="status-dot green"></div>
+                <div><div class="status-label">Database</div><div class="status-value">Healthy</div></div>
+            </div>
+            <div class="status-item">
+                <div class="status-dot orange"></div>
+                <div><div class="status-label">Asia-Pacific</div><div class="status-value">Degraded</div></div>
+            </div>
+            <div class="status-item">
+                <div class="status-dot green"></div>
+                <div><div class="status-label">Auth Services</div><div class="status-value">Operational</div></div>
+            </div>
+            <div class="status-item">
+                <div class="status-dot green"></div>
+                <div><div class="status-label">ML Inference</div><div class="status-value">Operational</div></div>
+            </div>
+        </div>
+
+        <!-- NOC Cards -->
+        <div class="noc-grid">
+            <div class="noc-card success">
+                <div class="noc-header"><span class="noc-title">Total API Calls (24h)</span><span class="noc-badge live">Live</span></div>
+                <div class="noc-value">2.4M</div>
+                <div class="noc-change up">↑ 12.3% vs yesterday</div>
+                <div class="noc-sparkline"><canvas id="sparkCalls"></canvas></div>
+            </div>
+            <div class="noc-card">
+                <div class="noc-header"><span class="noc-title">Avg Response Time</span></div>
+                <div class="noc-value green">142ms</div>
+                <div class="noc-change up">↓ 8ms improvement</div>
+                <div class="noc-sparkline"><canvas id="sparkLatency"></canvas></div>
+            </div>
+            <div class="noc-card warning">
+                <div class="noc-header"><span class="noc-title">Error Rate</span><span class="noc-badge warning">Alert</span></div>
+                <div class="noc-value orange">0.12%</div>
+                <div class="noc-change down">↑ 0.04% (Asia-Pacific)</div>
+                <div class="noc-sparkline"><canvas id="sparkErrors"></canvas></div>
+            </div>
+            <div class="noc-card success">
+                <div class="noc-header"><span class="noc-title">System Uptime</span></div>
+                <div class="noc-value green">99.97%</div>
+                <div class="noc-change">30-day rolling</div>
+                <div class="noc-sparkline"><canvas id="sparkUptime"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="content-grid" style="margin-bottom: 24px;">
+            <div class="card">
+                <div class="card-header">
+                    <div><h3 class="card-title">Global Latency Map</h3><p class="card-subtitle">Regional response times</p></div>
+                </div>
+                <div class="world-map">
+                    <div class="map-region us"><div class="tooltip">US-East: 89ms</div></div>
+                    <div class="map-region eu"><div class="tooltip">EU-West: 124ms</div></div>
+                    <div class="map-region asia"><div class="tooltip">Asia-Pacific: 312ms ⚠️</div></div>
+                    <div class="map-latency">
+                        <div class="latency-item"><div class="latency-region">US-East</div><div class="latency-value good">89ms</div></div>
+                        <div class="latency-item"><div class="latency-region">EU-West</div><div class="latency-value good">124ms</div></div>
+                        <div class="latency-item"><div class="latency-region">Asia-Pac</div><div class="latency-value warning">312ms</div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <div><h3 class="card-title">API Endpoint Status</h3><p class="card-subtitle">Service health overview</p></div>
+                    <span class="card-badge">All Core Up</span>
+                </div>
+                <table class="api-table">
+                    <thead><tr><th>Endpoint</th><th>Status</th><th>Uptime</th><th>P99</th></tr></thead>
+                    <tbody>
+                        <tr><td>/v1/inference</td><td><span class="api-status"><span class="api-status-dot up"></span>Up</span></td><td class="api-uptime">99.99%</td><td>156ms</td></tr>
+                        <tr><td>/v1/models</td><td><span class="api-status"><span class="api-status-dot up"></span>Up</span></td><td class="api-uptime">99.98%</td><td>89ms</td></tr>
+                        <tr><td>/v1/audit</td><td><span class="api-status"><span class="api-status-dot up"></span>Up</span></td><td class="api-uptime">100%</td><td>45ms</td></tr>
+                        <tr><td>/v1/xai</td><td><span class="api-status"><span class="api-status-dot degraded"></span>Degraded</span></td><td class="api-uptime warning">99.12%</td><td>512ms</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="content-grid equal" style="margin-bottom: 24px;">
+            <div class="card">
+                <div class="card-header">
+                    <div><h3 class="card-title">Real-Time Audit Stream</h3><p class="card-subtitle">21 CFR Part 11 compliant logging</p></div>
+                    <span class="card-badge">Live</span>
+                </div>
+                <div class="console-log" id="consoleLog">
+                    <div class="console-line"><span class="timestamp">[10:24:31]</span> <span class="level-info">[INFO]</span> Dr. Chen signed inference result #48721</div>
+                    <div class="console-line"><span class="timestamp">[10:24:28]</span> <span class="level-success">[SUCCESS]</span> Model v4.2.0 inference completed - 147ms</div>
+                    <div class="console-line"><span class="timestamp">[10:24:15]</span> <span class="level-info">[INFO]</span> New session: Mayo Clinic (user: jpark@mayo.edu)</div>
+                    <div class="console-line"><span class="timestamp">[10:24:02]</span> <span class="level-warn">[WARN]</span> Asia-Pacific latency spike detected: 489ms</div>
+                    <div class="console-line"><span class="timestamp">[10:23:58]</span> <span class="level-info">[INFO]</span> Batch inference job #1247 queued (n=156)</div>
+                    <div class="console-line"><span class="timestamp">[10:23:45]</span> <span class="level-success">[SUCCESS]</span> Daily backup completed: 2.4TB archived</div>
+                    <div class="console-line"><span class="timestamp">[10:23:31]</span> <span class="level-info">[INFO]</span> Certificate renewal scheduled: 14 days</div>
+                    <div class="console-line"><span class="timestamp">[10:23:12]</span> <span class="level-error">[ERROR]</span> XAI endpoint timeout - retry #2 initiated</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <div><h3 class="card-title">Tenant API Usage</h3><p class="card-subtitle">Enterprise client consumption</p></div>
+                </div>
+                <div class="tenant-list">
+                    <div class="tenant-item">
+                        <div class="tenant-logo" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">MG</div>
+                        <div class="tenant-info"><div class="tenant-name">Mass General</div><div class="tenant-plan">Enterprise Plus</div></div>
+                        <div class="tenant-usage"><div class="tenant-calls">847,234</div><div class="tenant-limit">of 1M calls</div></div>
+                    </div>
+                    <div class="tenant-item">
+                        <div class="tenant-logo" style="background: linear-gradient(135deg, #10b981, #059669);">MC</div>
+                        <div class="tenant-info"><div class="tenant-name">Mayo Clinic</div><div class="tenant-plan">Enterprise Plus</div></div>
+                        <div class="tenant-usage"><div class="tenant-calls" style="color: var(--color-accent-orange);">923,567</div><div class="tenant-limit">of 1M calls ⚠️</div></div>
+                    </div>
+                    <div class="tenant-item">
+                        <div class="tenant-logo" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">CC</div>
+                        <div class="tenant-info"><div class="tenant-name">Cleveland Clinic</div><div class="tenant-plan">Enterprise</div></div>
+                        <div class="tenant-usage"><div class="tenant-calls">412,891</div><div class="tenant-limit">of 500K calls</div></div>
+                    </div>
+                    <div class="tenant-item">
+                        <div class="tenant-logo" style="background: linear-gradient(135deg, #f59e0b, #d97706);">JH</div>
+                        <div class="tenant-info"><div class="tenant-name">Johns Hopkins</div><div class="tenant-plan">Enterprise</div></div>
+                        <div class="tenant-usage"><div class="tenant-calls">298,445</div><div class="tenant-limit">of 500K calls</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-grid equal">
+            <div class="card">
+                <div class="card-header">
+                    <div><h3 class="card-title">Economic ROI Dashboard</h3><p class="card-subtitle">Platform-wide value metrics</p></div>
+                </div>
+                <div class="roi-grid">
+                    <div class="roi-stat"><div class="roi-value">$4.2M</div><div class="roi-label">Annual Savings (All Clients)</div></div>
+                    <div class="roi-stat"><div class="roi-value">847%</div><div class="roi-label">Aggregate ROI</div></div>
+                    <div class="roi-stat"><div class="roi-value">18.2K</div><div class="roi-label">FTE Hours Saved/Month</div></div>
+                </div>
+                <div class="chart-container" style="margin-top: 16px;"><canvas id="roiChart"></canvas></div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <div><h3 class="card-title">Quick Actions</h3><p class="card-subtitle">Administrative controls</p></div>
+                </div>
+                <div class="quick-actions">
+                    <div class="quick-btn" onclick="showSuccess('Cache cleared successfully')">
+                        <div class="quick-icon"><svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg></div>
+                        <div><div class="quick-label">Clear Cache</div><div class="quick-desc">Flush all regional caches</div></div>
+                    </div>
+                    <div class="quick-btn" onclick="showSuccess('Health check initiated')">
+                        <div class="quick-icon"><svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg></div>
+                        <div><div class="quick-label">Health Check</div><div class="quick-desc">Run full system diagnostic</div></div>
+                    </div>
+                    <div class="quick-btn" onclick="showSuccess('Backup started')">
+                        <div class="quick-icon"><svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg></div>
+                        <div><div class="quick-label">Manual Backup</div><div class="quick-desc">Trigger immediate backup</div></div>
+                    </div>
+                    <div class="quick-btn danger" onclick="openKillswitchModal()">
+                        <div class="quick-icon"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7v-2h10v2z"/></svg></div>
+                        <div><div class="quick-label">Emergency Killswitch</div><div class="quick-desc">Disable all inference</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Killswitch Modal -->
+    <div class="modal-overlay" id="killswitchModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-icon danger"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7v-2h10v2z"/></svg></div>
+                <h2 class="modal-title">Emergency Killswitch</h2>
+                <p class="modal-subtitle">This will disable ALL inference across ALL tenants</p>
+            </div>
+            <div class="modal-warning">⚠️ This action requires 21 CFR Part 11 signature and will be audited. All active inference sessions will be terminated immediately.</div>
+            <div class="signature-section">
+                <input type="text" class="signature-input" id="killSignature" placeholder="Type your full name to authorize" oninput="updateKillBtn()">
+                <label class="checkbox-item">
+                    <input type="checkbox" id="killAttest" onchange="updateKillBtn()">
+                    <span class="checkbox-custom"></span>
+                    <span class="checkbox-label">I understand this will halt all production inference</span>
+                </label>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeKillswitchModal()">Cancel</button>
+                <button class="btn btn-danger" id="killBtn" disabled onclick="confirmKillswitch()">
+                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7v-2h10v2z"/></svg>
+                    Activate Killswitch
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal-overlay" id="successModal">
+        <div class="modal" style="text-align: center;">
+            <div class="success-animation">
+                <div class="success-circle"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div>
+            </div>
+            <h2 class="modal-title" style="color: var(--color-accent-green);">Action Completed</h2>
+            <p class="modal-subtitle" id="successMessage">Operation successful.</p>
+            <div class="modal-actions" style="margin-top: 24px;">
+                <button class="btn btn-primary" onclick="closeSuccessModal()">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Live Clock
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('liveClock').textContent = now.toLocaleTimeString('en-US', { hour12: false });
+            document.getElementById('liveDate').textContent = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Notifications
+        function toggleNotifications() { document.getElementById('notificationDropdown').classList.toggle('active'); }
+        function clearNotifications() { document.querySelectorAll('.notification-item.unread').forEach(i => i.classList.remove('unread')); document.querySelector('.notification-badge').style.display = 'none'; }
+        document.addEventListener('click', e => { if (!e.target.closest('.nav-notifications')) document.getElementById('notificationDropdown').classList.remove('active'); });
+
+        // Modals
+        function openKillswitchModal() { document.getElementById('killswitchModal').classList.add('active'); }
+        function closeKillswitchModal() { document.getElementById('killswitchModal').classList.remove('active'); }
+        function updateKillBtn() {
+            const sig = document.getElementById('killSignature').value.trim().length >= 3;
+            const att = document.getElementById('killAttest').checked;
+            document.getElementById('killBtn').disabled = !(sig && att);
+        }
+        function confirmKillswitch() {
+            closeKillswitchModal();
+            showSuccess('Killswitch activated. All inference halted.');
+        }
+        function showSuccess(msg) {
+            document.getElementById('successMessage').textContent = msg;
+            document.getElementById('successModal').classList.add('active');
+        }
+        function closeSuccessModal() { document.getElementById('successModal').classList.remove('active'); }
+
+        // Console log animation
+        function addConsoleEntry() {
+            const messages = [
+                { level: 'info', msg: 'Heartbeat check passed - all nodes healthy' },
+                { level: 'success', msg: 'Inference completed - 134ms response' },
+                { level: 'info', msg: 'New API key generated for client #847' },
+                { level: 'warn', msg: 'Rate limit warning: 85% capacity reached' },
+                { level: 'success', msg: 'Model cache refreshed successfully' }
+            ];
+            const entry = messages[Math.floor(Math.random() * messages.length)];
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+            const line = document.createElement('div');
+            line.className = 'console-line';
+            line.innerHTML = `<span class="timestamp">[${time}]</span> <span class="level-${entry.level}">[${entry.level.toUpperCase()}]</span> ${entry.msg}`;
+            const log = document.getElementById('consoleLog');
+            log.insertBefore(line, log.firstChild);
+            if (log.children.length > 15) log.removeChild(log.lastChild);
+        }
+        setInterval(addConsoleEntry, 5000);
+
+        // Charts
+        function initCharts() {
+            // Sparkline helper
+            const sparkOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } }, elements: { point: { radius: 0 }, line: { borderWidth: 2 } } };
+            
+            // API Calls sparkline
+            new Chart(document.getElementById('sparkCalls'), {
+                type: 'line',
+                data: { labels: Array(12).fill(''), datasets: [{ data: [85, 92, 88, 95, 102, 98, 105, 110, 108, 115, 112, 120], borderColor: '#22c55e', tension: 0.4 }] },
+                options: sparkOptions
+            });
+
+            // Latency sparkline
+            new Chart(document.getElementById('sparkLatency'), {
+                type: 'line',
+                data: { labels: Array(12).fill(''), datasets: [{ data: [156, 148, 152, 145, 142, 148, 140, 145, 138, 142, 140, 142], borderColor: '#22c55e', tension: 0.4 }] },
+                options: sparkOptions
+            });
+
+            // Errors sparkline
+            new Chart(document.getElementById('sparkErrors'), {
+                type: 'line',
+                data: { labels: Array(12).fill(''), datasets: [{ data: [0.08, 0.06, 0.07, 0.09, 0.08, 0.10, 0.09, 0.11, 0.10, 0.12, 0.11, 0.12], borderColor: '#f59e0b', tension: 0.4 }] },
+                options: sparkOptions
+            });
+
+            // Uptime sparkline
+            new Chart(document.getElementById('sparkUptime'), {
+                type: 'line',
+                data: { labels: Array(12).fill(''), datasets: [{ data: [99.98, 99.99, 99.97, 99.99, 99.98, 99.97, 99.99, 99.98, 99.97, 99.98, 99.97, 99.97], borderColor: '#22c55e', tension: 0.4 }] },
+                options: sparkOptions
+            });
+
+            // ROI Chart
+            new Chart(document.getElementById('roiChart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Mass General', 'Mayo Clinic', 'Cleveland', 'Johns Hopkins', 'UCSF'],
+                    datasets: [{ label: 'Annual Savings ($K)', data: [1200, 1450, 680, 520, 350], backgroundColor: ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#14b8a6'], borderRadius: 6 }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b' } }, x: { grid: { display: false }, ticks: { color: '#64748b' } } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', initCharts);
+    </script>
+</body>
+</html>
