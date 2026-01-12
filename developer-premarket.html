@@ -94,8 +94,17 @@
         .gallery-item { aspect-ratio: 1; background: linear-gradient(135deg, #1a1f36, #2d3748); border-radius: 12px; position: relative; overflow: hidden; cursor: pointer; transition: transform 0.3s ease; }
         .gallery-item:hover { transform: scale(1.05); }
         .gallery-item::after { content: attr(data-label); position: absolute; bottom: 0; left: 0; right: 0; padding: 8px; background: linear-gradient(transparent, rgba(0,0,0,0.8)); color: white; font-size: 0.6875rem; text-align: center; }
-        .gallery-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.3); }
-        .gallery-placeholder svg { width: 32px; height: 32px; fill: currentColor; }
+        
+        /* Realistic X-ray overlays */
+        .xray-overlay { position: absolute; top: 10%; left: 15%; right: 15%; bottom: 20%; border-radius: 40% 40% 35% 35%; background: radial-gradient(ellipse at 50% 30%, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 40%, transparent 70%); box-shadow: inset 0 0 30px rgba(255,255,255,0.05), inset -10px 0 20px rgba(0,0,0,0.3), inset 10px 0 20px rgba(0,0,0,0.3); }
+        .xray-overlay::before { content: ''; position: absolute; top: 20%; left: 25%; right: 25%; height: 25%; background: linear-gradient(180deg, rgba(60,60,60,0.4) 0%, rgba(40,40,40,0.2) 100%); border-radius: 0 0 50% 50%; }
+        .xray-overlay::after { content: ''; position: absolute; top: 50%; left: 10%; right: 10%; height: 40%; background: repeating-linear-gradient(0deg, transparent 0px, transparent 8px, rgba(80,80,80,0.15) 8px, rgba(80,80,80,0.15) 10px); border-radius: 10px; }
+        .xray-overlay.small { top: 20%; left: 20%; right: 20%; bottom: 25%; }
+        .xray-overlay.noisy { filter: contrast(1.1); background: radial-gradient(ellipse at 50% 30%, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.04) 40%, transparent 70%); }
+        .xray-overlay.dense { opacity: 0.5; }
+        .xray-overlay.rotated { transform: rotate(-8deg); }
+        .xray-overlay.dual::before { box-shadow: 15px 10px 15px rgba(200,200,200,0.15), -15px 10px 15px rgba(200,200,200,0.15); }
+        .foreign-object { position: absolute; top: 35%; left: 60%; width: 15px; height: 15px; background: rgba(255,255,255,0.7); border-radius: 2px; transform: rotate(45deg); box-shadow: 0 0 10px rgba(255,255,255,0.5); }
         .checklist { display: flex; flex-direction: column; gap: 12px; }
         .checklist-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: rgba(0, 0, 0, 0.02); border-radius: 12px; transition: background 0.2s ease; }
         .checklist-item:hover { background: rgba(0, 0, 0, 0.04); }
@@ -173,6 +182,89 @@
         @keyframes ringPulse { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
         @media (max-width: 1024px) { .content-grid { grid-template-columns: 1fr; } }
         @media (max-width: 768px) { .navbar { padding: 12px 20px; } .main { padding: 24px 20px; } .model-header { flex-direction: column; gap: 20px; } .model-actions { width: 100%; } .model-actions .btn { flex: 1; justify-content: center; } .gallery-grid { grid-template-columns: repeat(2, 1fr); } }
+        
+        /* Dark mode toggle */
+        .theme-toggle { width: 36px; height: 36px; background: transparent; border: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; }
+        .theme-toggle:hover { background: rgba(0,0,0,0.05); }
+        .theme-toggle svg { width: 20px; height: 20px; fill: var(--color-text-muted); transition: all 0.3s ease; }
+        .theme-toggle .moon-icon { display: none; }
+        body.dark-mode .theme-toggle .sun-icon { display: none; }
+        body.dark-mode .theme-toggle .moon-icon { display: block; }
+        
+        /* Notification bell */
+        .nav-notifications { position: relative; }
+        .nav-user { display: flex; align-items: center; gap: 8px; }
+        .notification-bell { width: 36px; height: 36px; background: transparent; border: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; position: relative; }
+        .notification-bell:hover { background: rgba(0,0,0,0.05); }
+        .notification-bell svg { width: 20px; height: 20px; fill: var(--color-text-muted); }
+        .notification-badge { position: absolute; top: 4px; right: 4px; width: 16px; height: 16px; background: var(--color-accent-red); color: white; font-size: 0.625rem; font-weight: 600; border-radius: 50%; display: flex; align-items: center; justify-content: center; animation: notifPulse 2s infinite; }
+        @keyframes notifPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        .notification-dropdown { position: absolute; top: 100%; right: 0; width: 360px; background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); opacity: 0; visibility: hidden; transform: translateY(10px); transition: all 0.3s ease; z-index: 1000; margin-top: 8px; overflow: hidden; }
+        .notification-dropdown.active { opacity: 1; visibility: visible; transform: translateY(0); }
+        .notification-header { padding: 16px 20px; border-bottom: 1px solid rgba(0,0,0,0.06); display: flex; justify-content: space-between; align-items: center; }
+        .notification-title { font-weight: 600; font-size: 0.9375rem; }
+        .notification-clear { font-size: 0.75rem; color: var(--color-accent-blue); cursor: pointer; }
+        .notification-list { max-height: 320px; overflow-y: auto; }
+        .notification-item { padding: 14px 20px; border-bottom: 1px solid rgba(0,0,0,0.04); display: flex; gap: 12px; cursor: pointer; transition: background 0.2s; }
+        .notification-item:hover { background: rgba(0,0,0,0.02); }
+        .notification-item.unread { background: rgba(0, 102, 204, 0.04); }
+        .notification-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .notification-icon.alert { background: rgba(239, 68, 68, 0.15); }
+        .notification-icon.alert svg { fill: var(--color-accent-red); }
+        .notification-icon.warning { background: rgba(245, 158, 11, 0.15); }
+        .notification-icon.warning svg { fill: var(--color-accent-orange); }
+        .notification-icon.success { background: rgba(16, 185, 129, 0.15); }
+        .notification-icon.success svg { fill: var(--color-accent-green); }
+        .notification-icon.info { background: rgba(0, 102, 204, 0.15); }
+        .notification-icon.info svg { fill: var(--color-accent-blue); }
+        .notification-icon svg { width: 18px; height: 18px; }
+        .notification-content { flex: 1; min-width: 0; }
+        .notification-text { font-size: 0.8125rem; color: var(--color-text-primary); margin-bottom: 2px; }
+        .notification-text strong { font-weight: 600; }
+        .notification-time { font-size: 0.6875rem; color: var(--color-text-muted); }
+        .notification-footer { padding: 12px 20px; text-align: center; border-top: 1px solid rgba(0,0,0,0.06); }
+        .notification-footer a { font-size: 0.8125rem; color: var(--color-accent-blue); text-decoration: none; }
+        
+        /* FDA Countdown */
+        .fda-countdown { display: flex; align-items: center; gap: 16px; padding: 16px 20px; background: linear-gradient(135deg, rgba(0, 102, 204, 0.08), rgba(13, 148, 136, 0.08)); border-radius: 12px; margin-bottom: 20px; }
+        .countdown-icon { width: 44px; height: 44px; background: linear-gradient(135deg, var(--color-accent-blue), var(--color-accent-teal)); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+        .countdown-icon svg { width: 24px; height: 24px; fill: white; }
+        .countdown-content { flex: 1; }
+        .countdown-label { font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+        .countdown-value { font-family: var(--font-display); font-size: 1.25rem; color: var(--color-text-primary); }
+        .countdown-value span { color: var(--color-accent-blue); font-weight: 600; }
+        .countdown-progress { width: 200px; }
+        .countdown-bar { height: 6px; background: rgba(0,0,0,0.1); border-radius: 3px; overflow: hidden; }
+        .countdown-fill { height: 100%; background: linear-gradient(90deg, var(--color-accent-blue), var(--color-accent-teal)); border-radius: 3px; transition: width 1s ease; }
+        .countdown-percent { font-size: 0.75rem; color: var(--color-text-muted); text-align: right; margin-top: 4px; }
+        
+        /* Threshold Slider */
+        .threshold-slider-container { padding: 8px 0; }
+        .threshold-display { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        .threshold-metric { text-align: center; flex: 1; }
+        .threshold-label { display: block; font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+        .threshold-value { font-size: 1.5rem; font-weight: 600; color: var(--color-text-primary); }
+        .threshold-value.good { color: var(--color-accent-green); }
+        .threshold-value.warning { color: var(--color-accent-orange); }
+        .slider-wrapper { margin-bottom: 16px; }
+        .threshold-slider { width: 100%; height: 8px; -webkit-appearance: none; appearance: none; background: linear-gradient(90deg, var(--color-accent-green) 0%, var(--color-accent-orange) 50%, var(--color-accent-red) 100%); border-radius: 4px; outline: none; cursor: pointer; }
+        .threshold-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; background: white; border: 3px solid var(--color-accent-blue); border-radius: 50%; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: transform 0.2s; }
+        .threshold-slider::-webkit-slider-thumb:hover { transform: scale(1.1); }
+        .threshold-slider::-moz-range-thumb { width: 24px; height: 24px; background: white; border: 3px solid var(--color-accent-blue); border-radius: 50%; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .slider-labels { display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.6875rem; color: var(--color-text-muted); }
+        .threshold-recommendation { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; font-size: 0.8125rem; color: var(--color-text-secondary); }
+        .threshold-recommendation strong { color: var(--color-accent-green); }
+        
+        /* Dark mode styles */
+        body.dark-mode { --color-bg: #0f1219; --color-bg-gradient-1: #1a1f2e; --color-bg-gradient-2: #1f1a2e; --color-text-primary: #f1f5f9; --color-text-secondary: #94a3b8; --color-text-muted: #64748b; --color-glass-bg: rgba(30, 41, 59, 0.8); --color-glass-border: rgba(51, 65, 85, 0.5); --color-glass-shadow: rgba(0, 0, 0, 0.3); }
+        body.dark-mode .notification-dropdown { background: #1e293b; }
+        body.dark-mode .notification-item:hover { background: rgba(255,255,255,0.05); }
+        body.dark-mode .notification-item.unread { background: rgba(0, 102, 204, 0.15); }
+        body.dark-mode .notification-header { border-color: rgba(255,255,255,0.1); }
+        body.dark-mode .modal { background: #1e293b; }
+        body.dark-mode .signature-input { background: #0f172a; border-color: rgba(255,255,255,0.1); color: var(--color-text-primary); }
+        body.dark-mode .checkbox-item { background: #0f172a; }
+        body.dark-mode .theme-toggle:hover { background: rgba(255,255,255,0.1); }
     </style>
 </head>
 <body>
@@ -189,7 +281,23 @@
             <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
             <span>ChestXR-Detect</span>
         </div>
-        <div class="nav-user"><div class="nav-user-avatar">MD</div></div>
+        <div class="nav-user">
+            <button class="theme-toggle" onclick="toggleDarkMode()" title="Toggle dark mode"><svg viewBox="0 0 24 24" class="sun-icon"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/></svg><svg viewBox="0 0 24 24" class="moon-icon"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg></button>
+            <div class="nav-notifications">
+                <button class="notification-bell" onclick="toggleNotifications()"><svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg><span class="notification-badge">3</span></button>
+                <div class="notification-dropdown" id="notificationDropdown">
+                    <div class="notification-header"><span class="notification-title">Notifications</span><span class="notification-clear" onclick="clearNotifications()">Mark all read</span></div>
+                    <div class="notification-list">
+                        <div class="notification-item unread"><div class="notification-icon alert"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg></div><div class="notification-content"><div class="notification-text"><strong>Drift Alert:</strong> Mayo Clinic AUC dropped below 0.86</div><div class="notification-time">2 minutes ago</div></div></div>
+                        <div class="notification-item unread"><div class="notification-icon warning"><svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg></div><div class="notification-content"><div class="notification-text"><strong>Bias Warning:</strong> Pacific Islander subgroup at 0.82</div><div class="notification-time">1 hour ago</div></div></div>
+                        <div class="notification-item unread"><div class="notification-icon success"><svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></div><div class="notification-content"><div class="notification-text"><strong>Shadow Test Complete:</strong> v4.3.0-rc1 ready for review</div><div class="notification-time">3 hours ago</div></div></div>
+                        <div class="notification-item"><div class="notification-icon info"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></div><div class="notification-content"><div class="notification-text"><strong>SBOM Scan:</strong> All dependencies up to date</div><div class="notification-time">Yesterday</div></div></div>
+                    </div>
+                    <div class="notification-footer"><a href="#">View all notifications</a></div>
+                </div>
+            </div>
+            <div class="nav-user-avatar">MD</div>
+        </div>
     </nav>
     <main class="main">
         <header class="model-header">
@@ -219,6 +327,19 @@
             </div>
         </div>
 
+        <!-- FDA Submission Countdown -->
+        <div class="fda-countdown">
+            <div class="countdown-icon"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></div>
+            <div class="countdown-content">
+                <div class="countdown-label">Estimated Time to FDA Submission</div>
+                <div class="countdown-value"><span>47 days</span> remaining (target: March 1, 2026)</div>
+            </div>
+            <div class="countdown-progress">
+                <div class="countdown-bar"><div class="countdown-fill" style="width: 87%;"></div></div>
+                <div class="countdown-percent">87% documentation complete</div>
+            </div>
+        </div>
+
         <!-- Tab 1: Hospital Performance -->
         <div class="tab-content active" id="hospital">
             <div class="content-grid">
@@ -229,7 +350,26 @@
                     </div>
                     <div class="chart-container large"><canvas id="rocChart"></canvas></div>
                 </div>
+                
+                <!-- Interactive Threshold Slider -->
                 <div class="card">
+                    <div class="card-header"><div><h3 class="card-title">Threshold Optimizer</h3><p class="card-subtitle">Adjust classification threshold to see sensitivity/specificity tradeoff</p></div></div>
+                    <div class="threshold-slider-container">
+                        <div class="threshold-display">
+                            <div class="threshold-metric"><span class="threshold-label">Threshold</span><span class="threshold-value" id="thresholdValue">0.50</span></div>
+                            <div class="threshold-metric"><span class="threshold-label">Sensitivity</span><span class="threshold-value good" id="sensitivityValue">0.891</span></div>
+                            <div class="threshold-metric"><span class="threshold-label">Specificity</span><span class="threshold-value" id="specificityValue">0.934</span></div>
+                        </div>
+                        <div class="slider-wrapper">
+                            <input type="range" min="0" max="100" value="50" class="threshold-slider" id="thresholdSlider" oninput="updateThreshold(this.value)">
+                            <div class="slider-labels"><span>0.0</span><span>0.25</span><span>0.50</span><span>0.75</span><span>1.0</span></div>
+                        </div>
+                        <div class="threshold-recommendation">
+                            <svg viewBox="0 0 24 24" width="16" height="16"><path fill="#10b981" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                            <span>Recommended: <strong>0.45-0.55</strong> for balanced performance</span>
+                        </div>
+                    </div>
+                </div>
                     <div class="card-header"><div><h3 class="card-title">Scanner Variability Matrix</h3><p class="card-subtitle">AUC by scanner manufacturer</p></div></div>
                     <div class="matrix-grid">
                         <div class="matrix-label"></div><div class="matrix-label">Site A</div><div class="matrix-label">Site B</div><div class="matrix-label">Site C</div><div class="matrix-label">Site D</div>
@@ -241,11 +381,15 @@
                 </div>
                 <div class="card">
                     <div class="card-header"><div><h3 class="card-title">Edge-Case Gallery</h3><p class="card-subtitle">Challenging cases for review</p></div><span class="card-badge warning">8 Cases</span></div>
-                    <div class="gallery-grid">
-                        <div class="gallery-item" data-label="Low contrast"><div class="gallery-placeholder"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></div></div>
-                        <div class="gallery-item" data-label="Motion blur"><div class="gallery-placeholder"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></div></div>
-                        <div class="gallery-item" data-label="Pediatric"><div class="gallery-placeholder"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></div></div>
-                        <div class="gallery-item" data-label="Portable XR"><div class="gallery-placeholder"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg></div></div>
+                    <div class="gallery-grid" style="grid-template-columns: repeat(4, 1fr);">
+                        <div class="gallery-item" data-label="Low contrast" style="background: radial-gradient(ellipse at 50% 40%, #3a3a3a 0%, #1a1a1a 50%, #0a0a0a 100%);"><div class="xray-overlay"></div></div>
+                        <div class="gallery-item" data-label="Motion blur" style="background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 50%, #0f0f0f 100%); filter: blur(0.5px);"><div class="xray-overlay" style="opacity: 0.6;"></div></div>
+                        <div class="gallery-item" data-label="Pediatric" style="background: radial-gradient(ellipse at 50% 35%, #4a4a4a 0%, #2a2a2a 40%, #0a0a0a 100%);"><div class="xray-overlay small"></div></div>
+                        <div class="gallery-item" data-label="Portable XR" style="background: linear-gradient(180deg, #1a1a1a 0%, #2a2a2a 30%, #1a1a1a 100%);"><div class="xray-overlay noisy"></div></div>
+                        <div class="gallery-item" data-label="Obese patient" style="background: radial-gradient(ellipse at 50% 45%, #2a2a2a 0%, #151515 60%, #0a0a0a 100%);"><div class="xray-overlay dense"></div></div>
+                        <div class="gallery-item" data-label="Rotated view" style="background: radial-gradient(ellipse at 40% 50%, #3a3a3a 0%, #1a1a1a 50%, #0a0a0a 100%); transform: rotate(0deg);"><div class="xray-overlay rotated"></div></div>
+                        <div class="gallery-item" data-label="Foreign object" style="background: radial-gradient(ellipse at 50% 40%, #3a3a3a 0%, #1a1a1a 50%, #0a0a0a 100%);"><div class="xray-overlay"><div class="foreign-object"></div></div></div>
+                        <div class="gallery-item" data-label="Dual pathology" style="background: radial-gradient(ellipse at 50% 40%, #3a3a3a 0%, #1a1a1a 50%, #0a0a0a 100%);"><div class="xray-overlay dual"></div></div>
                     </div>
                 </div>
             </div>
@@ -435,6 +579,55 @@
                 initChartsForTab(tab.dataset.tab);
             });
         });
+
+        // Notification dropdown
+        function toggleNotifications() {
+            document.getElementById('notificationDropdown').classList.toggle('active');
+        }
+        function clearNotifications() {
+            document.querySelectorAll('.notification-item.unread').forEach(item => item.classList.remove('unread'));
+            document.querySelector('.notification-badge').style.display = 'none';
+        }
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.nav-notifications')) {
+                document.getElementById('notificationDropdown').classList.remove('active');
+            }
+        });
+
+        // Dark mode toggle
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+            // Reinitialize charts for current tab to update colors
+            const activeTab = document.querySelector('.tab.active');
+            if (activeTab) initChartsForTab(activeTab.dataset.tab);
+        }
+        // Check saved preference
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+
+        // Interactive threshold slider
+        function updateThreshold(value) {
+            const threshold = value / 100;
+            document.getElementById('thresholdValue').textContent = threshold.toFixed(2);
+            
+            // Simulate sensitivity/specificity tradeoff
+            // At low threshold: high sensitivity, low specificity
+            // At high threshold: low sensitivity, high specificity
+            const sensitivity = 0.99 - (threshold * 0.25) + (Math.random() * 0.02 - 0.01);
+            const specificity = 0.75 + (threshold * 0.22) + (Math.random() * 0.02 - 0.01);
+            
+            const sensEl = document.getElementById('sensitivityValue');
+            const specEl = document.getElementById('specificityValue');
+            
+            sensEl.textContent = sensitivity.toFixed(3);
+            specEl.textContent = specificity.toFixed(3);
+            
+            // Color coding
+            sensEl.className = 'threshold-value ' + (sensitivity >= 0.90 ? 'good' : sensitivity >= 0.80 ? 'warning' : '');
+            specEl.className = 'threshold-value ' + (specificity >= 0.90 ? 'good' : specificity >= 0.80 ? 'warning' : '');
+        }
 
         // Modal functions
         function openModal() { 
